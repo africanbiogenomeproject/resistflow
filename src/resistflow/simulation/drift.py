@@ -32,4 +32,6 @@ def apply_drift(p, N):
     float
         Post-drift allele frequency of A.
     """
-    raise NotImplementedError("Not yet implemented.")
+    p_new = np.random.binomial(2 * N, p) / (2 * N)
+
+    return p_new

@@ -13,8 +13,8 @@ touching this file.
 Main entry point: simulate()
 """
 
-from resistflow.simulation.selection import apply_selection
-from resistflow.simulation.drift import apply_drift
+from .selection import apply_selection
+from .drift import apply_drift
 
 
 def simulate(
@@ -25,7 +25,6 @@ def simulate(
     w_Aa,
     w_aa,
     n_replicates=1,
-    generations_per_year=10,
 ):
     """
     Run a Wright-Fisher simulation.
@@ -47,14 +46,35 @@ def simulate(
     n_replicates : int
         Number of independent simulation runs (default: 1).
         Multiple replicates capture the stochasticity of drift.
-    generations_per_year : int
-        Biological generations per year for An. gambiae (default: 10).
-        Used to label time axis in years rather than generations.
-
     Returns
     -------
     list of list of float
         Allele frequency trajectories, one list per replicate.
         Each inner list has length n_generations + 1 (includes p0).
     """
-    raise NotImplementedError("Not yet implemented.")
+
+    if not 0 <= p0 <= 1:
+        raise ValueError(f"p0 must be in [0, 1], got {p0}.")
+    if not isinstance(N, int) or N <= 0:
+        raise ValueError(f"N must be a positive integer, got {N}.")
+    if n_generations <= 0:
+        raise ValueError(f"n_generations must be a positive integer, got {n_generations}.")
+    if n_replicates <= 0:
+        raise ValueError(f"n_replicates must be a positive integer, got {n_replicates}.")
+    if w_AA < 0 or w_Aa < 0 or w_aa < 0:
+        raise ValueError("Fitness values must be non-negative.")
+    
+    allele_frequencies = []
+
+    for i in range(n_replicates):
+        p = p0
+        replicates = [p]
+        for j in range(n_generations):
+            p_prime = apply_selection(p, w_AA, w_Aa, w_aa)
+            p_new = apply_drift(p_prime, N)
+            replicates.append(p_new)
+            p = p_new
+        allele_frequencies.append(replicates)
+
+    return allele_frequencies
+    
