@@ -53,6 +53,17 @@ def simulate(
         Each inner list has length n_generations + 1 (includes p0).
     """
 
+    if not 0 <= p0 <= 1:
+        raise ValueError(f"p0 must be in [0, 1], got {p0}.")
+    if not isinstance(N, int) or N <= 0:
+        raise ValueError(f"N must be a positive integer, got {N}.")
+    if n_generations <= 0:
+        raise ValueError(f"n_generations must be a positive integer, got {n_generations}.")
+    if n_replicates <= 0:
+        raise ValueError(f"n_replicates must be a positive integer, got {n_replicates}.")
+    if w_AA < 0 or w_Aa < 0 or w_aa < 0:
+        raise ValueError("Fitness values must be non-negative.")
+    
     allele_frequencies = []
 
     for i in range(n_replicates):
