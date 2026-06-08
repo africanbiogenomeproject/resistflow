@@ -45,4 +45,11 @@ def apply_selection(p, w_AA, w_Aa, w_aa):
     ValueError
         If mean fitness w̄ is zero (all genotypes have zero fitness).
     """
-    raise NotImplementedError("Not yet implemented.")
+    q = 1 - p
+    w_bar = p**2 * w_AA + 2 * p * q * w_Aa + q**2 * w_aa
+    if w_bar == 0:
+        raise ValueError(
+            "Mean fitness is zero - all genotype fitness values are zero."
+        )
+    p_prime = (p**2 * w_AA + p * q * w_Aa) / w_bar
+    return p_prime
