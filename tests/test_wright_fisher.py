@@ -26,8 +26,26 @@ test_simulate_baseline_scenario
 """
 
 import pytest
+import numpy as np
+from resistflow.simulation.wright_fisher import simulate
 
+def test_simulate_output_shape():
+    trajectories = simulate(p0 = 0.5, 
+                      N = 10_000, 
+                      n_generations= 10,
+                      w_AA = 1.0, w_Aa = 0.5, w_aa = 0.0, 
+                      n_replicates = 3)
+    
+    assert len(trajectories) == 3
+    for t in trajectories:
+        assert len(t) == 11
 
-def test_placeholder():
-    """Placeholder. Replace with real tests as implementation proceeds."""
-    assert True
+def test_baseline_scenario():
+    np.random.seed(42)
+    trajectories = simulate(p0 = 0.5, 
+                      N = 1_000_000, 
+                      n_generations= 10,
+                      w_AA = 1.0, w_Aa = 1.0, w_aa = 1.0, 
+                      n_replicates = 3)
+    final_freqs = [t[-1] for t in trajectories]
+    assert sum(final_freqs) / len(final_freqs) == pytest.approx(0.5, abs=0.05)

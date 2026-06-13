@@ -45,6 +45,10 @@ def apply_selection(p, w_AA, w_Aa, w_aa):
     ValueError
         If mean fitness w̄ is zero (all genotypes have zero fitness).
     """
+    if not  0<= p <= 1:
+        raise ValueError(f"p must be in [0, 1], got {p}.")
+    if w_AA < 0 or w_Aa < 0 or w_aa < 0:
+        raise ValueError("Fitness value must be non-negative.")
     q = 1 - p
     w_bar = p**2 * w_AA + 2 * p * q * w_Aa + q**2 * w_aa
     if w_bar == 0:

@@ -25,8 +25,20 @@ test_output_is_multiple_of_1_over_2N
 """
 
 import pytest
+import numpy as np
+from resistflow.simulation.drift import apply_drift
 
 
-def test_placeholder():
-    """Placeholder. Replace with real tests as implementation proceeds."""
-    assert True
+@pytest.mark.parametrize("p, expected", [
+    (1.0, 1.0),
+    (0.0, 0.0),
+
+])
+def test_absorbing_states(p, expected):
+    assert apply_drift(p, N=  10_000) == expected
+
+def test_large_N_low_variance():
+    np.random.seed(42)
+    result = apply_drift(p=0.5, N=1_000_000) 
+    assert  result == pytest.approx(0.5, abs=0.01)
+
