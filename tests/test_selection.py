@@ -30,8 +30,17 @@ test_known_output
 """
 
 import pytest
+from resistflow.simulation.selection import apply_selection
 
 
-def test_placeholder():
-    """Placeholder. Replace with real tests as implementation proceeds."""
-    assert True
+def test_invalid_input():
+    with pytest.raises(ValueError):
+        apply_selection(p = -0.1, w_AA = 1.0, w_Aa = 0.5, w_aa = 0.0)
+
+def test_known_output():
+    result = apply_selection(p = 0.5, w_AA=1.0, w_Aa= 0.5, w_aa= 0.0)
+    assert result == pytest.approx(0.75)
+    
+def test_no_selection():
+    result = apply_selection(p = 0.5, w_AA=1.0, w_Aa= 1.0, w_aa= 1.0)
+    assert result == pytest.approx(0.5)
