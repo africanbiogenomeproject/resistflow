@@ -11,7 +11,8 @@ Planned outputs
 - Optional: uncertainty bands (mean ± std across replicates)
 - Optional: observed MalariaGEN data points overlaid for validation
 """
-
+import numpy as np
+import matplotlib.pyplot as plt
 
 def plot_trajectories(
     trajectories,
@@ -46,7 +47,31 @@ def plot_trajectories(
     matplotlib.axes.Axes
         The axes object with the plot.
     """
-    raise NotImplementedError("Not yet implemented.")
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+    n_generations = len(trajectories[0]) - 1
+    years = [g / generations_per_year for g in range(n_generations + 1)]
+
+    for replicate in trajectories:
+        ax.plot(years, replicate, color="steelblue", alpha=0.3, linewidth=1)
+
+    mean_trajectory = np.mean(trajectories, axis=0)
+    ax.plot(years, mean_trajectory, color="steelblue", linewidth=2.5,
+            label=scenario_label or "mean")
+
+    if observed_points is not None:
+        ax.scatter(observed_points["year"], observed_points["frequency"],
+                   color="black", zorder=5, label="observed (MalariaGEN)")
+
+    ax.set_xlabel("Time (years)")
+    ax.set_ylabel("Resistance allele frequency")
+    ax.set_ylim(0, 1)
+    if title:
+        ax.set_title(title)
+    ax.legend()
+
+    return ax
 
 
 def plot_scenario_comparison(results_by_scenario, generations_per_year=10, title=None):
@@ -67,4 +92,25 @@ def plot_scenario_comparison(results_by_scenario, generations_per_year=10, title
     matplotlib.figure.Figure
         The figure object.
     """
-    raise NotImplementedError("Not yet implemented.")
+    colors = ["steelblue", "tomato", "seagreen"]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    for (scenario_name, trajectories), color in zip(results_by_scenario.items(), colors):
+        n_generations = len(trajectories[0]) - 1
+        years = [g / generations_per_year for g in range(n_generations + 1)]
+
+        for replicate in trajectories:
+            ax.plot(years, replicate, color=color, alpha=0.2, linewidth=1)
+
+        mean_trajectory = np.mean(trajectories, axis=0)
+        ax.plot(years, mean_trajectory, color=color, linewidth=2.5, label=scenario_name)
+
+    ax.set_xlabel("Time (years)")
+    ax.set_ylabel("Resistance allele frequency")
+    ax.set_ylim(0, 1)
+    if title:
+        ax.set_title(title)
+    ax.legend()
+
+    return fig
