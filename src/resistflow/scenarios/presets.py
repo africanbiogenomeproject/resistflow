@@ -42,14 +42,14 @@ SCENARIOS = {
     "continuous_pressure": {
         "description": "Sustained high-coverage pyrethroid application.",
         "w_AA": 1.0,
-        "w_Aa": 0.5,
-        "w_aa": 0.1,
+        "w_Aa": 0.85,
+        "w_aa": 0.70,
     },
     "reduced_coverage": {
         "description": "Partial insecticide coverage (~50% population exposed).",
         "w_AA": 1.0,
-        "w_Aa": 0.75,
-        "w_aa": 0.55,
+        "w_Aa": 0.92,
+        "w_aa": 0.85,
     },
     # rotation: planned - requires time-varying selection, future extension
 }
