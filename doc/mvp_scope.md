@@ -1,7 +1,7 @@
 # ResistFlow - MVP Scope
 
 **Document purpose:** Non-README reference for the AfricaBP manuscript core writing team  
-**Status:** Agreed scope (confirmed with ThankGod Aliyu, June 2026)
+**Status:** Agreed scope (confirmed with ThankGod Ebenezer, June 2026)
 
 ---
 
