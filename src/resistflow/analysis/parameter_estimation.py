@@ -50,10 +50,10 @@ def _save_cache(cache, cache_path):
 
 def _build_cache_key(country, species, aa_change, p0, observed_years,
                       observed_frequencies, N, generations_per_year,
-                      n_replicates, w_AA):
+                      n_replicates, w_AA, n_chromosomes=None):
     readable = f"{country}_{species}_{aa_change}".replace(" ", "")
 
-    raw = f"{p0}|{observed_years}|{observed_frequencies}|{N}|{generations_per_year}|{n_replicates}|{w_AA}"
+    raw = f"{p0}|{observed_years}|{observed_frequencies}|{N}|{generations_per_year}|{n_replicates}|{w_AA}|{n_chromosomes}"
 
     raw_bytes = raw.encode("utf-8")
     short_hash = hashlib.md5(raw_bytes).hexdigest()[:8]
@@ -68,6 +68,23 @@ def _deterministic_trajectory(p0, n_generations, w_AA, w_Aa, w_aa):
         p = apply_selection(p, w_AA, w_Aa, w_aa)
         traj.append(p)
     return traj
+
+def _binomial_lower_bound(n_chromosomes, confidence=0.95):
+    """
+    One-sided lower confidence bound for a binomial proportion when all
+    sampled alleles carry the variant (zero failures observed).
+
+    An observed sample frequency of 1.0 does not mean the population
+    frequency is 1.0 — it means no non-resistant allele was seen in a
+    finite sample. The deterministic trajectory approaches 1.0
+    asymptotically and never reaches it, so fitting to 1.0 exactly is
+    undefined and a target must be chosen. Deriving that target from the
+    sample size is principled; picking a fixed tolerance is not.
+
+    For zero observed failures, the lower bound is alpha^(1/n).
+    """
+    alpha = 1 - confidence
+    return alpha ** (1 / n_chromosomes)
 
 def _is_identifiable(p0, n_generations, observed_generations,
                       observed_frequencies, w_AA, tolerance=0.05):
@@ -102,80 +119,80 @@ def _is_identifiable(p0, n_generations, observed_generations,
 
 
 def _find_minimum_selection_bound(p0, observed_generations, observed_frequencies,
-                                   w_AA, h=0.25, tolerance=0.01):
+                                   w_AA, h=0.25, target=None,
+                                   n_chromosomes=None, tolerance=0.01):
     """
-    Find the minimum selection coefficient s (holding dominance h fixed at
-    a literature-derived value) such that the deterministic trajectory
-    reaches within `tolerance` of the final observed frequency.
+    Find the minimum selection coefficient s (holding dominance h fixed)
+    such that the deterministic trajectory reaches the fitting target.
 
-    Used when _is_identifiable finds the data cannot pin down a unique
-    point estimate. Rather than reporting an arbitrary point from an
-    unconstrained search, this anchors the search to a literature-justified
-    dominance coefficient and reports the weakest selection consistent
-    with what was observed — a defensible lower bound, not a guess.
+    The target is resolved in this order:
+      1. `target`, if given explicitly
+      2. the binomial lower confidence bound, if `n_chromosomes` is given
+         and the final observation is at fixation
+      3. final observation minus `tolerance` (fallback; less principled,
+         and the resulting bound depends on the tolerance chosen)
     """
     final_gen = observed_generations[-1]
     final_obs = observed_frequencies[-1]
 
-    s = 0.01
+    if target is None:
+        if n_chromosomes is not None and final_obs >= 1.0:
+            target = _binomial_lower_bound(n_chromosomes)
+        else:
+            target = final_obs - tolerance
+
+    s = 0.0001
     while s <= 0.99:
         w_aa = 1 - s
         w_Aa = w_aa + h * (1 - w_aa)
         traj = _deterministic_trajectory(p0, final_gen, w_AA, w_Aa, w_aa)
-        if traj[-1] >= final_obs - tolerance:
+        if traj[-1] >= target:
             return {"s_min": round(s, 4), "w_Aa": round(w_Aa, 4),
-                    "w_aa": round(w_aa, 4), "h_assumed": h}
-        s += 0.001
+                    "w_aa": round(w_aa, 4), "h_assumed": h,
+                    "fitting_target": round(target, 6)}
+        s += 0.0001
 
     return None
 
 def _sweep_h_sensitivity(p0, observed_generations, observed_frequencies, w_AA,
-                          h_range=(0.05, 0.65), h_step=0.05, tolerance=0.01):
+                          h_range=(0.05, 0.65), h_step=0.05,
+                          target=None, n_chromosomes=None, tolerance=0.01):
     """
     Check how sensitive the minimum-selection bound is to the assumed
-    dominance coefficient h, by repeating _find_minimum_selection_bound
-    across a range of h values rather than trusting a single one.
+    dominance coefficient h, by repeating the bound search across a range
+    of h values rather than trusting a single one.
 
-    If s_min stays roughly stable across this range, the bound does not
-    depend strongly on which dominance value is assumed — a materially
-    stronger claim than anchoring to one external literature value alone.
-
-    Parameters
-    ----------
-    h_range : tuple of float
-        (min, max) dominance coefficient to sweep, inclusive.
-    h_step : float
-        Step size for the sweep.
-
-    Returns
-    -------
-    dict
-        - s_min_range : (float, float) — lowest and highest s_min found
-          across the swept h values
-        - h_range_swept : tuple — the range actually swept
-        - sweep : list of dict — per-h results, for plotting/inspection
+    Uses the same fitting-target resolution as _find_minimum_selection_bound
+    so the sweep and the point estimate are directly comparable.
     """
     final_gen = observed_generations[-1]
     final_obs = observed_frequencies[-1]
 
+    if target is None:
+        if n_chromosomes is not None and final_obs >= 1.0:
+            target = _binomial_lower_bound(n_chromosomes)
+        else:
+            target = final_obs - tolerance
+
     sweep = []
     h = h_range[0]
     while h <= h_range[1] + 1e-9:
-        s = 0.01
+        s = 0.0001
         while s <= 0.99:
             w_aa = 1 - s
             w_Aa = w_aa + h * (1 - w_aa)
             traj = _deterministic_trajectory(p0, final_gen, w_AA, w_Aa, w_aa)
-            if traj[-1] >= final_obs - tolerance:
+            if traj[-1] >= target:
                 sweep.append({"h": round(h, 2), "s_min": round(s, 4)})
                 break
-            s += 0.001
+            s += 0.0001
         h += h_step
 
     s_values = [entry["s_min"] for entry in sweep]
     return {
         "s_min_range": (round(min(s_values), 4), round(max(s_values), 4)),
         "h_range_swept": h_range,
+        "fitting_target": round(target, 6),
         "sweep": sweep,
     }
 
@@ -187,6 +204,7 @@ def estimate_fitness_parameters(
     generations_per_year=10,
     n_replicates=50,
     w_AA=1.0,
+    n_chromosomes=None,
 ):
     """
     Estimate fitness parameters that best fit observed allele frequency data.
@@ -210,6 +228,11 @@ def estimate_fitness_parameters(
         only if simulate() is called separately with stochastic replicates.
     w_AA : float
         Fitness of resistant homozygote, fixed at 1.0 (reference genotype).
+    n_chromosomes : int or None, optional
+        Number of chromosomes sampled for the final observation. Used to
+        derive a principled fitting target via the binomial lower
+        confidence bound when the final observation is at fixation.
+        If None, falls back to a fixed tolerance (less defensible).
 
     Returns
     -------
@@ -261,27 +284,34 @@ def estimate_fitness_parameters(
     output["identifiable"] = identifiable
 
     if not identifiable:
-        bound = _find_minimum_selection_bound(p0, observed_generations,
-                                               observed_frequencies, w_AA)
-        sensitivity = _sweep_h_sensitivity(p0, observed_generations,
-                                            observed_frequencies, w_AA)
+        bound = _find_minimum_selection_bound(
+            p0, observed_generations, observed_frequencies, w_AA,
+            n_chromosomes=n_chromosomes)
+        sensitivity = _sweep_h_sensitivity(
+            p0, observed_generations, observed_frequencies, w_AA,
+            n_chromosomes=n_chromosomes)
 
         output["w_Aa"] = bound["w_Aa"]
         output["w_aa"] = bound["w_aa"]
         output["s_min"] = bound["s_min"]
         output["dominance_h_assumed"] = bound["h_assumed"]
+        output["fitting_target"] = bound["fitting_target"]
+        output["n_chromosomes"] = n_chromosomes
         output["s_min_range"] = sensitivity["s_min_range"]
         output["h_range_swept"] = sensitivity["h_range_swept"]
         output["note"] = (
             "Data do not uniquely identify fitness parameters — observations "
             "insufficient to constrain trajectory shape. Reporting the minimum "
             f"selection coefficient (s_min={bound['s_min']}) assuming dominance "
-            f"h={bound['h_assumed']} (Lynd et al. 2010). This bound is stable "
-            f"across a wide dominance range: sweeping h from "
+            f"h={bound['h_assumed']} (Lynd et al. 2010), fitted to a target of "
+            f"{bound['fitting_target']}"
+            + (f" derived as the 95% binomial lower bound from n={n_chromosomes} "
+               "sampled chromosomes." if n_chromosomes is not None
+               else " set by fixed tolerance (no sample size supplied).")
+            + f" The bound is stable across dominance: sweeping h from "
             f"{sensitivity['h_range_swept'][0]} to {sensitivity['h_range_swept'][1]} "
             f"gives s_min between {sensitivity['s_min_range'][0]} and "
-            f"{sensitivity['s_min_range'][1]}, indicating the conclusion does not "
-            "depend strongly on the dominance assumption."
+            f"{sensitivity['s_min_range'][1]}."
         )
 
     return output
@@ -297,6 +327,7 @@ def get_or_estimate_fitness_parameters(
     generations_per_year=10,
     n_replicates=50,
     w_AA=1.0,
+    n_chromosomes=None,
     force_reestimate=False,
     cache_path=DEFAULT_CACHE_PATH,
 ):
@@ -338,9 +369,10 @@ def get_or_estimate_fitness_parameters(
     """
     cache_path = Path(cache_path)
     case_id = _build_cache_key(
-            country, species, aa_change, p0, observed_years,
-            observed_frequencies, N, generations_per_year, n_replicates, w_AA
-            )
+        country, species, aa_change, p0, observed_years,
+        observed_frequencies, N, generations_per_year, n_replicates, w_AA,
+        n_chromosomes
+    )
 
     cache = _load_cache(cache_path)
 
@@ -357,6 +389,7 @@ def get_or_estimate_fitness_parameters(
         generations_per_year=generations_per_year,
         n_replicates=n_replicates,
         w_AA=w_AA,
+        n_chromosomes=n_chromosomes,
     )
 
     cache[case_id] = params
