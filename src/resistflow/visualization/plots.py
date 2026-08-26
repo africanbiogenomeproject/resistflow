@@ -20,6 +20,7 @@ def plot_trajectories(
     title=None,
     scenario_label=None,
     observed_points=None,
+    observed_label="observed",
     ax=None,
 ):
     """
@@ -37,8 +38,11 @@ def plot_trajectories(
     scenario_label : str, optional
         Label for the legend entry.
     observed_points : dict, optional
-        Real MalariaGEN observations for validation overlay.
+        Observed allele frequencies to overlay for validation.
         Format: {'year': [years], 'frequency': [frequencies]}
+    observed_label : str, optional
+        Legend label for the observed points (default: "observed").
+        Set to e.g. "observed (MalariaGEN)" when plotting API-sourced data.
     ax : matplotlib.axes.Axes, optional
         Axes to plot on. Creates a new figure if None.
 
@@ -62,7 +66,7 @@ def plot_trajectories(
 
     if observed_points is not None:
         ax.scatter(observed_points["year"], observed_points["frequency"],
-                   color="black", zorder=5, label="observed (MalariaGEN)")
+                   color="black", zorder=5, label=observed_label)
 
     ax.set_xlabel("Time (years)")
     ax.set_ylabel("Resistance allele frequency")
