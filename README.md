@@ -31,6 +31,26 @@ That's all you need for simulation, scenario comparison, parameter estimation, a
 
 ---
 
+## Run the example and the tests
+
+Both commands run from the repository root, after `poetry install`. Requires Python 3.10 to 3.12.
+
+Run the example. It takes a few seconds and needs no internet or MalariaGEN access:
+
+```bash
+poetry run python example/run_example.py
+```
+
+It reads `example/input/example_data.csv` and writes the fitted parameters to `example/output/fitted_parameters.json`. The file committed in the repository is the expected output.
+
+Run the tests:
+
+```bash
+poetry run pytest tests
+```
+
+---
+
 ## Quickstart
 
 Everything you need is importable from the top-level package:
@@ -81,7 +101,7 @@ from resistflow import (
     plot_trajectories,
 )
 
-data = load_local_data("examples/example_data.csv")
+data = load_local_data("example/input/example_data.csv")
 
 params = get_or_estimate_fitness_parameters(
     p0=data["p0"],
@@ -113,7 +133,7 @@ plot_trajectories(
     },
 )
 ```
-Paths are relative to the repository root. If you're running from notebooks/, use ../examples/example_data.csv.
+Paths are relative to the repository root. If you're running from notebooks/, use ../example/input/example_data.csv.
 
 ### 3. Use MalariaGEN data
 
@@ -227,8 +247,11 @@ ResistFlow aims to complement that work with a lightweight, transparent tool for
 
 ```
 resistflow/
-├── examples/
-│   └── example_data.csv          # Example input for load_local_data
+├── example/
+│   ├── input/
+│   │   └── example_data.csv      # Example input for load_local_data
+│   ├── output/                   # Expected output of the example run
+│   └── run_example.py            # One-command example run
 ├── doc/
 │   ├── mvp_scope.md              # Original MVP scope
 │   └── implementation_notes.md   # What was built, and what changed

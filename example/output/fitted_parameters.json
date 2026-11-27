@@ -1,0 +1,21 @@
+{
+  "dominance_h_assumed": 0.25,
+  "final_error": 0.0,
+  "fitting_target": 0.984984,
+  "h_range_swept": [
+    0.05,
+    0.65
+  ],
+  "identifiable": false,
+  "n_chromosomes": 198,
+  "note": "Data do not uniquely identify fitness parameters \u2014 observations insufficient to constrain trajectory shape. Reporting the minimum selection coefficient (s_min=0.1501) assuming dominance h=0.25 (Lynd et al. 2010), fitted to a target of 0.984984 derived as the 95% binomial lower bound from n=198 sampled chromosomes. The bound is stable across dominance: sweeping h from 0.05 to 0.65 gives s_min between 0.1485 and 0.1776.",
+  "optimization_success": true,
+  "s_min": 0.1501,
+  "s_min_range": [
+    0.1485,
+    0.1776
+  ],
+  "w_AA": 1.0,
+  "w_Aa": 0.8874,
+  "w_aa": 0.8499
+}
